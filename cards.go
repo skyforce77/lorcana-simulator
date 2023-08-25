@@ -5,13 +5,41 @@ import (
 	"time"
 )
 
+// Card types
+
+const CardTypeGlimmer = "glimmer"
+const CardTypeItem = "item"
+const CardTypeAction = "action"
+const CardTypeSong = "song"
+
 type PlayingCard struct {
-	Type   *CardType
-	Damage int
+	Details *CardDetails
+	Damage  int
 }
 
 type PlayingCardPile struct {
 	content []*PlayingCard
+}
+
+func (card *PlayingCard) IsTypeGlimmer() bool {
+	return card.Details.Type == CardTypeGlimmer
+}
+
+func (card *PlayingCard) IsTypeItem() bool {
+	return card.Details.Type == CardTypeItem
+}
+
+func (card *PlayingCard) IsTypeAction() bool {
+	return card.Details.Type == CardTypeAction
+}
+
+func (card *PlayingCard) IsTypeSong() bool {
+	return card.Details.Type == CardTypeSong
+}
+
+func (card *PlayingCard) IsDead() bool {
+	return card.IsTypeGlimmer() &&
+		card.Damage >= card.Details.Willpower
 }
 
 func (pile *PlayingCardPile) Shuffle() {

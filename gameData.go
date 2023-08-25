@@ -10,7 +10,7 @@ import (
 //go:embed resources/gameData.json
 var rawGameData []byte
 
-type CardType struct {
+type CardDetails struct {
 	Name          string   `json:"name"`
 	Title         string   `json:"title"`
 	Cost          int      `json:"cost"`
@@ -31,23 +31,23 @@ type CardType struct {
 	FrontImage    string   `json:"FrontImage"`
 	FrontImageAlt string   `json:"FrontImageAlt"`
 	BackImage     string   `json:"BackImage"`
+	Amount        int      `json:"amount"` // For deck use only
 	UniqueID      string
-	Amount        int `json:"amount"` // For deck use only
 }
 
 type CardSet struct {
-	ID     int         `json:"id"`
-	Name   string      `json:"name"`
-	Promo  bool        `json:"promo"`
-	Amount int         `json:"amount"`
-	Cards  []*CardType `json:"cards"`
+	ID     int            `json:"id"`
+	Name   string         `json:"name"`
+	Promo  bool           `json:"promo"`
+	Amount int            `json:"amount"`
+	Cards  []*CardDetails `json:"cards"`
 }
 
 type Deck struct {
 	ID             int
-	Name           string      `json:"name"`
-	Types          []*CardType `json:"cards"`
-	DeckDefinition map[*CardType]int
+	Name           string         `json:"name"`
+	Details        []*CardDetails `json:"cards"`
+	DeckDefinition map[*CardDetails]int
 	CardsAmount    int
 }
 
@@ -57,7 +57,7 @@ type GameData struct {
 }
 
 var gameData GameData
-var cards = make(map[string]*CardType)
+var cards = make(map[string]*CardDetails)
 
 func initGameData() {
 	err := json.Unmarshal(rawGameData, &gameData)
@@ -95,18 +95,22 @@ func processDecks() {
 	}
 }
 
+func (card *CardDetails) IsInkwell() bool {
+	return card.Inkwell != 0
+}
+
 func (deck *Deck) Import() error {
 	cardAmount := 0
-	deck.DeckDefinition = make(map[*CardType]int)
+	deck.DeckDefinition = make(map[*CardDetails]int)
 
-	for cardId, card := range deck.Types {
+	for cardId, card := range deck.Details {
 		cardAmount += card.Amount
 		var found = false
 
 		for _, cardType := range cards {
 			if cardType.Name == card.Name && cardType.Title == card.Title {
 				found = true
-				deck.Types[cardId] = cardType
+				deck.Details[cardId] = cardType
 				deck.DeckDefinition[cardType] = card.Amount
 				break
 			}
