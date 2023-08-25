@@ -1,20 +1,33 @@
 package main
 
+import (
+	"github.com/google/uuid"
+	"time"
+)
+
 type Game struct {
-	players []*Player
+	uuid        uuid.UUID
+	players     []*Player
+	turn        int
+	lastUsed    time.Time
+	turnTimeout *time.Time
 }
 
-func NewGame() *Game {
+func NewGame(player1 string, player2 string) *Game {
 	game := &Game{
+		uuid: uuid.New(),
 		players: []*Player{
 			nil,
 			nil,
 		},
+		turn:        0,
+		lastUsed:    time.Now(),
+		turnTimeout: nil,
 	}
 
 	game.players = []*Player{
-		newPlayer(game, "test1"),
-		newPlayer(game, "test2"),
+		newPlayer(game, player1),
+		newPlayer(game, player2),
 	}
 
 	for _, player := range game.players {
@@ -44,6 +57,26 @@ func (game *Game) DispatchEventToEveryone(event Event) {
 
 func (game *Game) Start() {
 	for _, player := range game.players {
-		player.PileToHand(7)
+		player.DrawCards(7)
 	}
+
+	game.DispatchState()
+}
+
+func (game *Game) Next() {
+	if game.turn >= len(game.players)-1 {
+		game.turn = 0
+	} else {
+		game.turn++
+	}
+
+	game.DispatchState()
+}
+
+func (game *Game) CurrentTurn() *Player {
+	return game.players[game.turn]
+}
+
+func (game *Game) DispatchState() {
+	game.DispatchEventToEveryone(NewGameUpdateEvent(game))
 }

@@ -16,12 +16,23 @@ func EventAsJson(event Event) string {
 	return string(str)
 }
 
+type PlayerUUIDAssignedEvent struct {
+	ID     string    `json:"id"`
+	Player uuid.UUID `json:"player"`
+}
+
+func NewPlayerUUIDAssignedEvent(player *Player) *PlayerUUIDAssignedEvent {
+	return &PlayerUUIDAssignedEvent{
+		"PlayerUUIDAssignedEvent",
+		player.UUID,
+	}
+}
+
 type CardCountUpdateEvent struct {
 	ID     string    `json:"id"`
 	Player uuid.UUID `json:"player"`
 	Cards  int       `json:"cards"`
-	IsHand bool      `json:"isHand"`
-	IsPile bool      `json:"isPile"`
+	Type   int       `json:"type"`
 }
 
 func NewCardCountUpdateEvent(pile *PlayingCardPile) *CardCountUpdateEvent {
@@ -29,8 +40,7 @@ func NewCardCountUpdateEvent(pile *PlayingCardPile) *CardCountUpdateEvent {
 		"CardCountUpdateEvent",
 		pile.owner.UUID,
 		len(pile.content),
-		pile.isHand,
-		pile.isPile,
+		pile.pileType,
 	}
 }
 
@@ -38,8 +48,7 @@ type CardUpdateEvent struct {
 	ID     string         `json:"id"`
 	Player uuid.UUID      `json:"player"`
 	Cards  []*PlayingCard `json:"cards"`
-	IsHand bool           `json:"isHand"`
-	IsPile bool           `json:"isPile"`
+	Type   int            `json:"type"`
 }
 
 func NewCardUpdateEvent(pile *PlayingCardPile) *CardUpdateEvent {
@@ -47,7 +56,32 @@ func NewCardUpdateEvent(pile *PlayingCardPile) *CardUpdateEvent {
 		"CardUpdateEvent",
 		pile.owner.UUID,
 		pile.content,
-		pile.isHand,
-		pile.isPile,
+		pile.pileType,
+	}
+}
+
+type GameUpdateEvent struct {
+	ID         string    `json:"id"`
+	PlayerTurn uuid.UUID `json:"playerTurn"`
+}
+
+func NewGameUpdateEvent(game *Game) *GameUpdateEvent {
+	return &GameUpdateEvent{
+		"GameUpdateEvent",
+		game.players[game.turn].UUID,
+	}
+}
+
+type CardStateUpdateEvent struct {
+	ID       string    `json:"id"`
+	Status   int       `json:"status"`
+	CardUUID uuid.UUID `json:"cardUUID"`
+}
+
+func NewCardStateUpdateEvent(card *PlayingCard) *CardStateUpdateEvent {
+	return &CardStateUpdateEvent{
+		"CardStateUpdateEvent",
+		card.Status,
+		card.UUID,
 	}
 }

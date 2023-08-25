@@ -13,18 +13,38 @@ const CardTypeItem = "item"
 const CardTypeAction = "action"
 const CardTypeSong = "song"
 
+// Card status
+
+const (
+	CardStatusNone = iota
+	CardStatusExhausted
+	CardStatusWaiting
+)
+
+// Card pile type
+
+const (
+	CardPile = iota
+	CardPileHand
+	CardPileTable
+	CardPileDiscard
+	CardPileInkwell
+)
+
 type PlayingCard struct {
+	game    *Game
+	owner   *Player
 	UUID    uuid.UUID    `json:"uuid"`
 	Details *CardDetails `json:"details"`
 	Damage  int          `json:"damage"`
+	Status  int          `json:"status"`
 }
 
 type PlayingCardPile struct {
-	game    *Game
-	owner   *Player
-	content []*PlayingCard
-	isHand  bool
-	isPile  bool
+	game     *Game
+	owner    *Player
+	content  []*PlayingCard
+	pileType int
 }
 
 func (card *PlayingCard) IsTypeGlimmer() bool {
@@ -48,6 +68,39 @@ func (card *PlayingCard) IsDead() bool {
 		card.Damage >= card.Details.Willpower
 }
 
+func (card *PlayingCard) IsExhausted() bool {
+	return card.Status == CardStatusExhausted
+}
+
+func (card *PlayingCard) SetStatus(status int) {
+	card.Status = status
+	card.DispatchState()
+}
+
+func (card *PlayingCard) DispatchState() {
+	card.game.DispatchEventToEveryone(NewCardStateUpdateEvent(card))
+}
+
+func (pile *PlayingCardPile) IsPile() bool {
+	return pile.pileType == CardPile
+}
+
+func (pile *PlayingCardPile) IsHand() bool {
+	return pile.pileType == CardPileHand
+}
+
+func (pile *PlayingCardPile) IsTable() bool {
+	return pile.pileType == CardPileTable
+}
+
+func (pile *PlayingCardPile) IsDiscard() bool {
+	return pile.pileType == CardPileDiscard
+}
+
+func (pile *PlayingCardPile) IsInkwell() bool {
+	return pile.pileType == CardPileInkwell
+}
+
 func (pile *PlayingCardPile) Shuffle() {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(pile.content), func(i, j int) {
@@ -69,6 +122,21 @@ func (pile *PlayingCardPile) Pick(count int) []*PlayingCard {
 	return cards
 }
 
+func (pile *PlayingCardPile) FindFirst(filter func(card *PlayingCard) bool) (int, *PlayingCard) {
+	for index, card := range pile.content {
+		if filter(card) {
+			return index, card
+		}
+	}
+	return 0, nil
+}
+
+func (pile *PlayingCardPile) FindByUUID(uuid uuid.UUID) (int, *PlayingCard) {
+	return pile.FindFirst(func(card *PlayingCard) bool {
+		return card.UUID == uuid
+	})
+}
+
 func (pile *PlayingCardPile) Add(cards []*PlayingCard) {
 	for _, card := range cards {
 		pile.content = append(pile.content, card)
@@ -76,12 +144,23 @@ func (pile *PlayingCardPile) Add(cards []*PlayingCard) {
 	pile.DispatchState()
 }
 
+func (pile *PlayingCardPile) PickCard(index int) {
+	pile.content = append(pile.content[0:index], pile.content[index+1:len(pile.content)]...)
+	pile.DispatchState()
+}
+
 func (pile *PlayingCardPile) DispatchState() {
 	// Control who sees cards
-	if pile.isHand {
+	if pile.IsHand() {
 		pile.game.DispatchEventToOthers(pile.owner, NewCardCountUpdateEvent(pile))
 		pile.game.DispatchEvent(pile.owner, NewCardUpdateEvent(pile))
-	} else {
+	} else if pile.IsPile() || pile.IsDiscard() || pile.IsInkwell() {
 		pile.game.DispatchEventToEveryone(NewCardCountUpdateEvent(pile))
+	} else if pile.IsTable() {
+		pile.game.DispatchEventToEveryone(NewCardUpdateEvent(pile))
 	}
+}
+
+func (pile *PlayingCardPile) Length() int {
+	return len(pile.content)
 }

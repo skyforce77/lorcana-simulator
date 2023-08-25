@@ -32,7 +32,7 @@ type CardDetails struct {
 	FrontImageAlt string   `json:"FrontImageAlt"`
 	BackImage     string   `json:"BackImage"`
 	Amount        int      `json:"amount"` // For deck use only
-	UniqueID      string
+	UniqueID      string   `json:"uniqueId"`
 }
 
 type CardSet struct {
