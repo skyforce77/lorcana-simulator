@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/google/uuid"
 	"math/rand"
 	"time"
 )
@@ -13,12 +14,17 @@ const CardTypeAction = "action"
 const CardTypeSong = "song"
 
 type PlayingCard struct {
-	Details *CardDetails
-	Damage  int
+	UUID    uuid.UUID    `json:"uuid"`
+	Details *CardDetails `json:"details"`
+	Damage  int          `json:"damage"`
 }
 
 type PlayingCardPile struct {
+	game    *Game
+	owner   *Player
 	content []*PlayingCard
+	isHand  bool
+	isPile  bool
 }
 
 func (card *PlayingCard) IsTypeGlimmer() bool {
@@ -47,6 +53,7 @@ func (pile *PlayingCardPile) Shuffle() {
 	rand.Shuffle(len(pile.content), func(i, j int) {
 		pile.content[i], pile.content[j] = pile.content[j], pile.content[i]
 	})
+	pile.DispatchState()
 }
 
 func (pile *PlayingCardPile) Pick(count int) []*PlayingCard {
@@ -58,6 +65,7 @@ func (pile *PlayingCardPile) Pick(count int) []*PlayingCard {
 	cards := pile.content[len(pile.content)-toPick : len(pile.content)]
 	pile.content = pile.content[0 : len(pile.content)-toPick]
 
+	pile.DispatchState()
 	return cards
 }
 
@@ -65,23 +73,15 @@ func (pile *PlayingCardPile) Add(cards []*PlayingCard) {
 	for _, card := range cards {
 		pile.content = append(pile.content, card)
 	}
+	pile.DispatchState()
 }
 
-func pileFromDeck(deck *Deck) *PlayingCardPile {
-	playingCards := make([]*PlayingCard, deck.CardsAmount)
-	counter := 0
-
-	for typ, count := range deck.DeckDefinition {
-		for i := 0; i < count; i++ {
-			playingCards[counter] = &PlayingCard{
-				typ,
-				0,
-			}
-			counter++
-		}
-	}
-
-	return &PlayingCardPile{
-		playingCards,
+func (pile *PlayingCardPile) DispatchState() {
+	// Control who sees cards
+	if pile.isHand {
+		pile.game.DispatchEventToOthers(pile.owner, NewCardCountUpdateEvent(pile))
+		pile.game.DispatchEvent(pile.owner, NewCardUpdateEvent(pile))
+	} else {
+		pile.game.DispatchEventToEveryone(NewCardCountUpdateEvent(pile))
 	}
 }
