@@ -68,6 +68,10 @@ func (card *PlayingCard) IsDead() bool {
 		card.Damage >= card.Details.Willpower
 }
 
+func (card *PlayingCard) HasNoStatus() bool {
+	return card.Status == CardStatusNone
+}
+
 func (card *PlayingCard) IsExhausted() bool {
 	return card.Status == CardStatusExhausted
 }
@@ -152,15 +156,33 @@ func (pile *PlayingCardPile) PickCard(index int) {
 func (pile *PlayingCardPile) DispatchState() {
 	// Control who sees cards
 	if pile.IsHand() {
-		pile.game.DispatchEventToOthers(pile.owner, NewCardCountUpdateEvent(pile))
-		pile.game.DispatchEvent(pile.owner, NewCardUpdateEvent(pile))
+		pile.game.DispatchEventToOthers(pile.owner, NewCardPileCountUpdateEvent(pile))
+		pile.game.DispatchEvent(pile.owner, NewCardPileUpdateEvent(pile))
 	} else if pile.IsPile() || pile.IsDiscard() || pile.IsInkwell() {
-		pile.game.DispatchEventToEveryone(NewCardCountUpdateEvent(pile))
+		pile.game.DispatchEventToEveryone(NewCardPileCountUpdateEvent(pile))
 	} else if pile.IsTable() {
-		pile.game.DispatchEventToEveryone(NewCardUpdateEvent(pile))
+		pile.game.DispatchEventToEveryone(NewCardPileUpdateEvent(pile))
 	}
 }
 
 func (pile *PlayingCardPile) Length() int {
 	return len(pile.content)
+}
+
+func (pile *PlayingCardPile) NoStatusCount() int {
+	count := 0
+	for _, card := range pile.content {
+		if card.HasNoStatus() {
+			count++
+		}
+	}
+	return count
+}
+
+func (pile *PlayingCardPile) ResetStatus() {
+	for _, card := range pile.content {
+		if !card.HasNoStatus() {
+			card.SetStatus(CardStatusNone)
+		}
+	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/google/uuid"
 	"log"
 )
@@ -100,21 +101,46 @@ func (player *Player) DrawCards(count int) {
 	player.Hand.Add(picked)
 }
 
-func (player *Player) PlayCharacter(uuid uuid.UUID) bool {
+func (player *Player) ToInk(uuid uuid.UUID) error {
 	index, card := player.Hand.FindByUUID(uuid)
-	log.Println(index, card, card.IsTypeGlimmer())
 
 	if card == nil {
-		return false
+		return errors.New("can't find card")
+	}
+
+	if !card.Details.IsInkwell() {
+		return errors.New("should be inkwell")
+	}
+
+	if !card.HasNoStatus() {
+		return errors.New("should be ready")
+	}
+
+	player.Hand.PickCard(index)
+	player.Inkwell.Add([]*PlayingCard{card})
+	card.SetStatus(CardStatusExhausted)
+
+	return nil
+}
+
+func (player *Player) PlayCharacter(uuid uuid.UUID) error {
+	index, card := player.Hand.FindByUUID(uuid)
+
+	if card == nil {
+		return errors.New("can't find card")
 	}
 
 	if !card.IsTypeGlimmer() {
-		return false
+		return errors.New("should be glimmer")
+	}
+
+	if player.Inkwell.NoStatusCount() < card.Details.Cost {
+		return errors.New("not enough ink")
 	}
 
 	player.Hand.PickCard(index)
 	player.Table.Add([]*PlayingCard{card})
 	card.SetStatus(CardStatusExhausted)
 
-	return true
+	return nil
 }

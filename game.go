@@ -70,6 +70,7 @@ func (game *Game) Next() {
 		game.turn++
 	}
 
+	game.CurrentTurn().Inkwell.ResetStatus()
 	game.DispatchState()
 }
 
