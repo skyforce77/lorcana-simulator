@@ -26,8 +26,8 @@ func NewGame(player1 string, player2 string) *Game {
 	}
 
 	game.players = []*Player{
-		newPlayer(game, player1),
-		newPlayer(game, player2),
+		NewPlayer(game, player1),
+		NewPlayer(game, player2),
 	}
 
 	for _, player := range game.players {
@@ -37,21 +37,21 @@ func NewGame(player1 string, player2 string) *Game {
 	return game
 }
 
-func (game *Game) DispatchEvent(player *Player, event Event) {
-	player.HandleEvent(event)
+func (game *Game) DispatchPacket(player *Player, event Packet) {
+	player.HandlePacket(event)
 }
 
-func (game *Game) DispatchEventToOthers(player *Player, event Event) {
+func (game *Game) DispatchPacketToOthers(player *Player, event Packet) {
 	for _, other := range game.players {
 		if other != player {
-			other.HandleEvent(event)
+			other.HandlePacket(event)
 		}
 	}
 }
 
-func (game *Game) DispatchEventToEveryone(event Event) {
+func (game *Game) DispatchPacketToEveryone(event Packet) {
 	for _, player := range game.players {
-		player.HandleEvent(event)
+		player.HandlePacket(event)
 	}
 }
 
@@ -80,5 +80,5 @@ func (game *Game) CurrentTurn() *Player {
 }
 
 func (game *Game) DispatchState() {
-	game.DispatchEventToEveryone(NewGameUpdateEvent(game))
+	game.DispatchPacketToEveryone(NewGameUpdatePacket(game))
 }

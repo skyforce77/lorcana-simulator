@@ -21,9 +21,9 @@ func luaPrint(L *lua.LState) int {
 	return 0
 }
 
-func (action *CardAction) Execute(card *PlayingCard) {
+// NewLuaState ! Have to be closed !
+func NewLuaState(card *PlayingCard) *lua.LState {
 	L := lua.NewState()
-	defer L.Close()
 
 	L.SetGlobal("card", luar.New(L, card))
 	L.SetGlobal("game", luar.New(L, card.game))
@@ -31,7 +31,67 @@ func (action *CardAction) Execute(card *PlayingCard) {
 	L.SetGlobal("on", L.NewFunction(card.luaListener()))
 	L.SetGlobal("print", L.NewFunction(luaPrint))
 
+	return L
+}
+
+func (action *CardAction) Execute(card *PlayingCard) {
+	L := NewLuaState(card)
+	defer L.Close()
+
 	if err := L.DoString(action.Script); err != nil {
 		panic(err)
 	}
+}
+
+// EVENTS
+
+type LuaEvent interface {
+	ID() string
+}
+
+type LuaCancellableEvent struct {
+	Name      string
+	Cancelled bool
+}
+
+type LuaSingEvent struct {
+	LuaCancellableEvent
+}
+
+func NewLuaSingEvent() *LuaSingEvent {
+	return &LuaSingEvent{
+		LuaCancellableEvent{
+			"sing",
+			false,
+		},
+	}
+}
+
+type LuaPlacedEvent struct {
+	LuaCancellableEvent
+}
+
+func NewLuaPlacedEvent() *LuaPlacedEvent {
+	return &LuaPlacedEvent{
+		LuaCancellableEvent{
+			"placed",
+			false,
+		},
+	}
+}
+
+func (event *LuaCancellableEvent) ID() string {
+	return event.Name
+}
+
+func (event *LuaCancellableEvent) SetCancelled(cancelled bool) {
+	event.Cancelled = cancelled
+}
+
+func (event *LuaCancellableEvent) cancel() {
+	event.Cancelled = true
+}
+
+func (event *LuaCancellableEvent) IsCancelled() bool {
+	return event.Cancelled
 }

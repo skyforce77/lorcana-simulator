@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/google/uuid"
 	lua "github.com/yuin/gopher-lua"
+	luar "layeh.com/gopher-luar"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -49,6 +51,37 @@ type PlayingCardPile struct {
 	pileType int
 }
 
+func NewPlayingCard(details *CardDetails, player *Player) *PlayingCard {
+	card := &PlayingCard{
+		player.Game,
+		player,
+		uuid.New(),
+		details,
+		0,
+		CardStatusNone,
+		make(map[string]*lua.LFunction),
+	}
+
+	card.InitMoves()
+	return card
+}
+
+func NewPlayingCardPile(player *Player, pileType int) *PlayingCardPile {
+	return &PlayingCardPile{
+		player.Game,
+		player,
+		make([]*PlayingCard, 0),
+		pileType,
+	}
+}
+
+func (card *PlayingCard) InitMoves() {
+	// Prepare LUA
+	for _, move := range card.Details.Moves {
+		move.Execute(card)
+	}
+}
+
 func (card *PlayingCard) IsTypeGlimmer() bool {
 	return card.Details.Type == CardTypeGlimmer
 }
@@ -83,8 +116,28 @@ func (card *PlayingCard) SetStatus(status int) {
 	card.DispatchState()
 }
 
+func (card *PlayingCard) TriggerLuaEvent(event LuaEvent) error {
+	log.Println(event.ID())
+	log.Println(card.Listeners[event.ID()])
+
+	if val, ok := card.Listeners[event.ID()]; ok {
+		L := NewLuaState(card)
+		defer L.Close()
+
+		err := L.CallByParam(lua.P{
+			Fn: val,
+		}, luar.New(L, event))
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (card *PlayingCard) DispatchState() {
-	card.game.DispatchEventToEveryone(NewCardStateUpdateEvent(card))
+	card.game.DispatchPacketToEveryone(NewCardStateUpdatePacket(card))
 }
 
 func (pile *PlayingCardPile) IsPile() bool {
@@ -158,12 +211,12 @@ func (pile *PlayingCardPile) PickCard(index int) {
 func (pile *PlayingCardPile) DispatchState() {
 	// Control who sees cards
 	if pile.IsHand() {
-		pile.game.DispatchEventToOthers(pile.owner, NewCardPileHiddenUpdateEvent(pile))
-		pile.game.DispatchEvent(pile.owner, NewCardPileUpdateEvent(pile))
+		pile.game.DispatchPacketToOthers(pile.owner, NewCardPileHiddenUpdatePacket(pile))
+		pile.game.DispatchPacket(pile.owner, NewCardPileUpdatePacket(pile))
 	} else if pile.IsPile() || pile.IsDiscard() || pile.IsInkwell() {
-		pile.game.DispatchEventToEveryone(NewCardPileHiddenUpdateEvent(pile))
+		pile.game.DispatchPacketToEveryone(NewCardPileHiddenUpdatePacket(pile))
 	} else if pile.IsTable() {
-		pile.game.DispatchEventToEveryone(NewCardPileUpdateEvent(pile))
+		pile.game.DispatchPacketToEveryone(NewCardPileUpdatePacket(pile))
 	}
 }
 

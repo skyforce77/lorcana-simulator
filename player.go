@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"github.com/google/uuid"
-	lua "github.com/yuin/gopher-lua"
 	"log"
 )
 
@@ -18,7 +17,7 @@ type Player struct {
 	Inkwell *PlayingCardPile
 }
 
-func newPlayer(game *Game, name string) *Player {
+func NewPlayer(game *Game, name string) *Player {
 	player := &Player{
 		game,
 		uuid.New(),
@@ -30,42 +29,13 @@ func newPlayer(game *Game, name string) *Player {
 		nil,
 	}
 
-	player.Pile = &PlayingCardPile{
-		game,
-		player,
-		make([]*PlayingCard, 0),
-		CardPile,
-	}
+	player.Pile = NewPlayingCardPile(player, CardPile)
+	player.Hand = NewPlayingCardPile(player, CardPileHand)
+	player.Table = NewPlayingCardPile(player, CardPileTable)
+	player.Discard = NewPlayingCardPile(player, CardPileDiscard)
+	player.Inkwell = NewPlayingCardPile(player, CardPileInkwell)
 
-	player.Hand = &PlayingCardPile{
-		game,
-		player,
-		make([]*PlayingCard, 0),
-		CardPileHand,
-	}
-
-	player.Table = &PlayingCardPile{
-		game,
-		player,
-		make([]*PlayingCard, 0),
-		CardPileTable,
-	}
-
-	player.Discard = &PlayingCardPile{
-		game,
-		player,
-		make([]*PlayingCard, 0),
-		CardPileDiscard,
-	}
-
-	player.Inkwell = &PlayingCardPile{
-		game,
-		player,
-		make([]*PlayingCard, 0),
-		CardPileInkwell,
-	}
-
-	game.DispatchEvent(player, NewPlayerUUIDAssignedEvent(player))
+	game.DispatchPacket(player, NewPlayerUUIDAssignedPacket(player))
 
 	return player
 }
@@ -76,15 +46,7 @@ func (player *Player) InitDeck(deck *Deck) {
 
 	for typ, count := range deck.DeckDefinition {
 		for i := 0; i < count; i++ {
-			playingCards[counter] = &PlayingCard{
-				player.Game,
-				player,
-				uuid.New(),
-				typ,
-				0,
-				CardStatusNone,
-				make(map[string]*lua.LFunction),
-			}
+			playingCards[counter] = NewPlayingCard(typ, player)
 			counter++
 		}
 	}
@@ -93,9 +55,9 @@ func (player *Player) InitDeck(deck *Deck) {
 	player.Pile.DispatchState()
 }
 
-func (player *Player) HandleEvent(event Event) {
+func (player *Player) HandlePacket(packet Packet) {
 	//TODO
-	log.Printf("EVENT[%s] %s", player.Name, EventAsJson(event))
+	//log.Printf("EVENT[%s] %s", player.Name, PacketAsJson(packet))
 }
 
 func (player *Player) DrawCards(count int) {
@@ -138,9 +100,19 @@ func (player *Player) PlayCharacter(uuid uuid.UUID) error {
 		return errors.New("not enough ink")
 	}
 
-	player.Hand.PickCard(index)
-	player.Table.Add([]*PlayingCard{card})
-	card.SetStatus(CardStatusDrying)
+	event := NewLuaPlacedEvent()
+	err := card.TriggerLuaEvent(event)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Println(event)
+
+	if !event.IsCancelled() {
+		player.Hand.PickCard(index)
+		player.Table.Add([]*PlayingCard{card})
+		card.SetStatus(CardStatusDrying)
+	}
 
 	return nil
 }

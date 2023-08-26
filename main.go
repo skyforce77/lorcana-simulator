@@ -14,22 +14,25 @@ func main() {
 	// Test
 	game.CurrentTurn().DrawCards(20)
 
-	log.Println("FIRST INK")
-	_, card := game.CurrentTurn().Hand.FindFirst(func(card *PlayingCard) bool {
-		return card.Details.IsInkwell()
-	})
-	game.CurrentTurn().ToInk(card.UUID)
-	log.Println("SECOND INK")
-	_, card = game.CurrentTurn().Hand.FindFirst(func(card *PlayingCard) bool {
-		return card.Details.IsInkwell()
-	})
-	game.CurrentTurn().ToInk(card.UUID)
+	for i := 0; i < 4; i++ {
+		_, card := game.CurrentTurn().Hand.FindFirst(func(card *PlayingCard) bool {
+			return card.Details.IsInkwell()
+		})
+		err := game.CurrentTurn().ToInk(card.UUID)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	log.Println("PLAY CHARACTER")
-	_, card = game.CurrentTurn().Hand.FindFirst(func(card *PlayingCard) bool {
+	_, card := game.CurrentTurn().Hand.FindFirst(func(card *PlayingCard) bool {
 		return card.IsTypeGlimmer() && card.Details.Cost <= 2 // We have too inks available
 	})
-	game.CurrentTurn().PlayCharacter(card.UUID)
+	card.Details = cards["1:18"]
+	card.InitMoves()
 
-	gameData.Moves[0].Execute(card)
+	err := card.game.CurrentTurn().PlayCharacter(card.UUID)
+	if err != nil {
+		panic(err)
+	}
 }
