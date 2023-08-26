@@ -28,18 +28,24 @@ func NewPlayerUUIDAssignedEvent(player *Player) *PlayerUUIDAssignedEvent {
 	}
 }
 
-type CardPileCountUpdateEvent struct {
-	ID     string    `json:"id"`
-	Player uuid.UUID `json:"player"`
-	Cards  int       `json:"cards"`
-	Type   int       `json:"type"`
+type CardPileHiddenUpdateEvent struct {
+	ID     string      `json:"id"`
+	Player uuid.UUID   `json:"player"`
+	Cards  []uuid.UUID `json:"cards"`
+	Type   int         `json:"type"`
 }
 
-func NewCardPileCountUpdateEvent(pile *PlayingCardPile) *CardPileCountUpdateEvent {
-	return &CardPileCountUpdateEvent{
-		"CardPileCountUpdateEvent",
+func NewCardPileHiddenUpdateEvent(pile *PlayingCardPile) *CardPileHiddenUpdateEvent {
+	cards := make([]uuid.UUID, len(pile.content))
+
+	for index, card := range pile.content {
+		cards[index] = card.UUID
+	}
+
+	return &CardPileHiddenUpdateEvent{
+		"CardPileHiddenUpdateEvent",
 		pile.owner.UUID,
-		len(pile.content),
+		cards,
 		pile.pileType,
 	}
 }

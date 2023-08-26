@@ -156,10 +156,10 @@ func (pile *PlayingCardPile) PickCard(index int) {
 func (pile *PlayingCardPile) DispatchState() {
 	// Control who sees cards
 	if pile.IsHand() {
-		pile.game.DispatchEventToOthers(pile.owner, NewCardPileCountUpdateEvent(pile))
+		pile.game.DispatchEventToOthers(pile.owner, NewCardPileHiddenUpdateEvent(pile))
 		pile.game.DispatchEvent(pile.owner, NewCardPileUpdateEvent(pile))
 	} else if pile.IsPile() || pile.IsDiscard() || pile.IsInkwell() {
-		pile.game.DispatchEventToEveryone(NewCardPileCountUpdateEvent(pile))
+		pile.game.DispatchEventToEveryone(NewCardPileHiddenUpdateEvent(pile))
 	} else if pile.IsTable() {
 		pile.game.DispatchEventToEveryone(NewCardPileUpdateEvent(pile))
 	}
