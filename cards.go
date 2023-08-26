@@ -18,7 +18,7 @@ const CardTypeSong = "song"
 const (
 	CardStatusNone = iota
 	CardStatusExhausted
-	CardStatusWaiting
+	CardStatusDrying
 )
 
 // Card pile type

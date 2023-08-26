@@ -2,37 +2,45 @@ package main
 
 import (
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/goccy/go-yaml"
 )
 
-//go:embed resources/gameData.json
+//go:embed resources/gameData.yaml
 var rawGameData []byte
 
+type CardAction struct {
+	ID          string `json:"id"`
+	Description string `json:"description"`
+	Script      string `json:"script"`
+}
+
 type CardDetails struct {
-	Name          string   `json:"name"`
-	Title         string   `json:"title"`
-	Cost          int      `json:"cost"`
-	Inkwell       int      `json:"inkwell"`
-	Strength      int      `json:"strength"`
-	Willpower     int      `json:"willpower"`
-	Color         int      `json:"color"`
-	Type          string   `json:"type"`
-	Action        string   `json:"action"`
-	Flavour       string   `json:"flavour"`
-	Lore          int      `json:"lore"`
-	Illustrator   string   `json:"illustrator"`
-	ID            int      `json:"id"`
-	Rarity        string   `json:"rarity"`
-	Image         string   `json:"image"`
-	FranchiseID   int      `json:"franchise_id"`
-	Traits        []string `json:"traits"`
-	FrontImage    string   `json:"FrontImage"`
-	FrontImageAlt string   `json:"FrontImageAlt"`
-	BackImage     string   `json:"BackImage"`
-	Amount        int      `json:"amount"` // For deck use only
-	UniqueID      string   `json:"uniqueId"`
+	Name          string        `json:"name"`
+	Title         string        `json:"title"`
+	Cost          int           `json:"cost"`
+	Inkwell       int           `json:"inkwell"`
+	Strength      int           `json:"strength"`
+	Willpower     int           `json:"willpower"`
+	Color         int           `json:"color"`
+	Type          string        `json:"type"`
+	Action        string        `json:"action"`
+	Actions       []string      `json:"actions"`
+	Flavour       string        `json:"flavour"`
+	Lore          int           `json:"lore"`
+	Illustrator   string        `json:"illustrator"`
+	ID            int           `json:"id"`
+	Rarity        string        `json:"rarity"`
+	Image         string        `json:"image"`
+	FranchiseID   int           `json:"franchise_id"`
+	Traits        []string      `json:"traits"`
+	FrontImage    string        `json:"FrontImage"`
+	FrontImageAlt string        `json:"FrontImageAlt"`
+	BackImage     string        `json:"BackImage"`
+	Amount        int           `json:"amount"` // For deck use only
+	UniqueID      string        // Calculated
+	Moves         []*CardAction // Calculated
 }
 
 type CardSet struct {
@@ -52,15 +60,16 @@ type Deck struct {
 }
 
 type GameData struct {
-	Sets  []*CardSet `json:"sets"`
-	Decks []*Deck    `json:"decks"`
+	Sets  []*CardSet    `json:"sets"`
+	Decks []*Deck       `json:"decks"`
+	Moves []*CardAction `json:"moves"`
 }
 
 var gameData GameData
 var cards = make(map[string]*CardDetails)
 
 func initGameData() {
-	err := json.Unmarshal(rawGameData, &gameData)
+	err := yaml.Unmarshal(rawGameData, &gameData)
 	if err != nil {
 		panic(err)
 	}
@@ -70,6 +79,12 @@ func initGameData() {
 }
 
 func processCards() {
+	// Collect moves
+	moves := make(map[string]*CardAction)
+	for _, move := range gameData.Moves {
+		moves[move.ID] = move
+	}
+
 	// Compute cards unique ids and card map
 	for _, set := range gameData.Sets {
 		for _, card := range set.Cards {
@@ -78,6 +93,16 @@ func processCards() {
 			if val, ok := cards[card.UniqueID]; ok {
 				panic(fmt.Sprintf("Card ID %s is already taken by %s - %s (meant to be replaced by %s - %s)",
 					card.UniqueID, val.Name, val.Title, card.Name, card.Title))
+			}
+
+			card.Moves = make([]*CardAction, len(card.Actions))
+			for index, action := range card.Actions {
+				if move, ok := moves[action]; ok {
+					card.Moves[index] = move
+				} else {
+					panic(fmt.Sprintf("Card %s - %s tries to use an undefined action %s",
+						card.Name, card.Title, action))
+				}
 			}
 
 			cards[card.UniqueID] = card

@@ -71,6 +71,7 @@ func (game *Game) Next() {
 	}
 
 	game.CurrentTurn().Inkwell.ResetStatus()
+	game.CurrentTurn().Table.ResetStatus()
 	game.DispatchState()
 }
 

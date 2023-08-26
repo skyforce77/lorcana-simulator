@@ -118,8 +118,6 @@ func (player *Player) ToInk(uuid uuid.UUID) error {
 
 	player.Hand.PickCard(index)
 	player.Inkwell.Add([]*PlayingCard{card})
-	card.SetStatus(CardStatusExhausted)
-
 	return nil
 }
 
@@ -140,7 +138,7 @@ func (player *Player) PlayCharacter(uuid uuid.UUID) error {
 
 	player.Hand.PickCard(index)
 	player.Table.Add([]*PlayingCard{card})
-	card.SetStatus(CardStatusExhausted)
+	card.SetStatus(CardStatusDrying)
 
 	return nil
 }

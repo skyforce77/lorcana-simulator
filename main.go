@@ -27,12 +27,6 @@ func main() {
 	})
 	game.CurrentTurn().ToInk(card.UUID)
 
-	// Next turn to be able to use ink
-	log.Println("TURNS")
-	time.Sleep(time.Second)
-	game.Next()
-	game.Next()
-
 	log.Println("PLAY CHARACTER")
 	time.Sleep(time.Second)
 	_, card = game.CurrentTurn().Hand.FindFirst(func(card *PlayingCard) bool {
