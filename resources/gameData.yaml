@@ -423,8 +423,8 @@ sets:
         willpower: 5
         color: 4
         type: glimmer
-        action: "<mark>When you play this character, remove up to 3 damage from one of
-      your characters. Draw a card for each 1 damage removed this way.</mark>"
+        actions:
+          - gleam and glow
         flavour:
         lore: 2
         illustrator: Jochem Van Gool
@@ -5370,4 +5370,13 @@ moves:
     script: >
       on("sing", function(event)
         event.cancel()
+      end)
+  - id: gleam and glow
+    desc: When you play this character, remove up to 3 damage from one of your characters. Draw a card for each 1 damage removed this way.
+    script: >
+      on("played", function(event)
+        characters = player.getPlayingCharacters()
+        chosen = player.askChoice(characters)
+        amount = chosen.damage(-3)
+        player.drawCards(amount)
       end)

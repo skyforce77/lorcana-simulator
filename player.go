@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/google/uuid"
+	lua "github.com/yuin/gopher-lua"
 	"log"
 )
 
@@ -82,6 +83,7 @@ func (player *Player) InitDeck(deck *Deck) {
 				typ,
 				0,
 				CardStatusNone,
+				make(map[string]*lua.LFunction),
 			}
 			counter++
 		}

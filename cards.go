@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/google/uuid"
+	lua "github.com/yuin/gopher-lua"
 	"math/rand"
 	"time"
 )
@@ -32,12 +33,13 @@ const (
 )
 
 type PlayingCard struct {
-	game    *Game
-	owner   *Player
-	UUID    uuid.UUID    `json:"uuid"`
-	Details *CardDetails `json:"details"`
-	Damage  int          `json:"damage"`
-	Status  int          `json:"status"`
+	game      *Game
+	owner     *Player
+	UUID      uuid.UUID    `json:"uuid"`
+	Details   *CardDetails `json:"details"`
+	Damage    int          `json:"damage"`
+	Status    int          `json:"status"`
+	Listeners map[string]*lua.LFunction
 }
 
 type PlayingCardPile struct {

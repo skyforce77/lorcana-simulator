@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 )
 
 func main() {
@@ -16,7 +15,6 @@ func main() {
 	game.CurrentTurn().DrawCards(20)
 
 	log.Println("FIRST INK")
-	time.Sleep(time.Second)
 	_, card := game.CurrentTurn().Hand.FindFirst(func(card *PlayingCard) bool {
 		return card.Details.IsInkwell()
 	})
@@ -28,9 +26,10 @@ func main() {
 	game.CurrentTurn().ToInk(card.UUID)
 
 	log.Println("PLAY CHARACTER")
-	time.Sleep(time.Second)
 	_, card = game.CurrentTurn().Hand.FindFirst(func(card *PlayingCard) bool {
 		return card.IsTypeGlimmer() && card.Details.Cost <= 2 // We have too inks available
 	})
 	game.CurrentTurn().PlayCharacter(card.UUID)
+
+	gameData.Moves[0].Execute(card)
 }
